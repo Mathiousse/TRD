@@ -1,0 +1,34 @@
+Folder PATH listing
+Volume serial number is D8EF-12EE
+C:.
+|   .env
+|   directory-tree.txt
+|   docker-compose.yml
+|   
++---authentication
+|       Dockerfile
+|       
++---backups
++---db
+|   |   Dockerfile
+|   |   
+|   \---postgres
+|       \---init.sql
++---gateway
+|   |   Dockerfile
+|   |   
+|   +---certs
+|   \---nginx.conf
++---match
+|       Dockerfile
+|       
++---notifications
+|       Dockerfile
+|       
++---paiement
+|       Dockerfile
+|       
++---pari
+|       Dockerfile
+|       
+\---prometheus.yml
