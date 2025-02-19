@@ -26,13 +26,14 @@ services:
     env_file: .env
     volumes:
       - mongo_data:/data/db
+      - ./db/mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
     networks:
       - trd-network
     healthcheck:
-      test: ["CMD-SHELL", "mongo --eval 'db.runCommand(\"ping\").ok' | grep 1"]
-      interval: 20s
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet || exit 1
+      interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
     logging:
       driver: "json-file"
       options:
@@ -49,10 +50,10 @@ services:
     networks:
       - trd-network
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail -u guest:guest http://localhost:15672/api/healthchecks/node || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 30s
+      timeout: 10s
+      retries: 3    
     logging:
       driver: "json-file"
       options:
@@ -61,6 +62,7 @@ services:
 
   # ---- Business Services ----
   authentication:
+    container_name: authentication
     build: ./authentication
     env_file: .env
     environment:
@@ -84,6 +86,7 @@ services:
         max-file: "3"
 
   pari:
+    container_name: pari
     build: ./pari
     env_file: .env
     environment:
@@ -107,14 +110,38 @@ services:
         max-size: "5m"
         max-file: "3"
 
+  match:
+    container_name: match
+    build: ./match
+    env_file: .env
+    environment:
+      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017
+    ports:
+      - "3005:3000"
+    networks:
+      - trd-network
+    depends_on:
+      - mongo
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
   paiement:
+    container_name: paiement
     build: ./paiement
     env_file: .env
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - RABBITMQ_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq
     ports:
-      - "3003:3000"
+      - "3006:3000"
     networks:
       - trd-network
     depends_on:
@@ -137,33 +164,11 @@ services:
     environment:
       - RABBITMQ_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq
     ports:
-      - "3004:3000"
+      - "3007:3000"
     networks:
       - trd-network
     depends_on:
       - rabbitmq
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "3"
-
-  match:
-    build: ./match
-    env_file: .env
-    environment:
-      - MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017
-    ports:
-      - "3005:3000"
-    networks:
-      - trd-network
-    depends_on:
-      - mongo
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
       interval: 10s
@@ -197,6 +202,7 @@ services:
         max-size: "5m"
         max-file: "3"
 
+  # ---- Monitoring Services ----
   prometheus:
     image: prom/prometheus
     ports:
@@ -213,18 +219,21 @@ services:
     networks:
       - trd-network
   
+  # ---- PostgreSQL backup ----
   backup-postgres:
     image: postgres:15.4
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
     command: >
-      bash -c 'pg_dump -Fc -U $$POSTGRES_USER -d $$POSTGRES_DB -f /backups/$$(date +%Y-%m-%d).dump'
+      bash -c 'sleep 20  # Attendre que PostgreSQL soit prêt
+      pg_dump -h postgres -U $$POSTGRES_USER -d $$POSTGRES_DB -Fc -f /backups/$$(date +%Y-%m-%d).dump'
+    depends_on:
+      postgres:
+        condition: service_healthy    
     env_file: .env
     networks:
       - trd-network
-    depends_on:
-      - postgres
 
 volumes:
   postgres_data:

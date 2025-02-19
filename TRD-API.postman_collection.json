@@ -1,0 +1,292 @@
+{
+	"info": {
+		"_postman_id": "b8f7d8e3-4f5a-4d1c-9b3e-8f7d8e34f5a4",
+		"name": "TRD-API",
+		"description": "Collection for testing TRD microservices",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Gateway Health",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response indicates healthy status\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost/health",
+					"protocol": "http",
+					"host": ["localhost"],
+					"path": ["health"]
+				},
+				"description": "Check if the gateway is operational"
+			}
+		},
+		{
+			"name": "2. Authentication - Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has JWT token\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.token).to.exist;",
+							"    pm.expect(jsonData.token).to.be.a('string');",
+							"    pm.expect(jsonData.token.split('.').length).to.eql(3);",
+							"});",
+							"",
+							"// Store token for later requests",
+							"if (pm.response.code === 200) {",
+							"    var jsonData = pm.response.json();",
+							"    pm.collectionVariables.set(\"jwt_token\", jsonData.token);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\": \"user4\",\n    \"password\": \"pass123\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost/auth/login",
+					"protocol": "http",
+					"host": ["localhost"],
+					"path": ["auth", "login"]
+				},
+				"description": "Login to get JWT token"
+			}
+		},
+		{
+			"name": "3. Match - Create Match",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Match created successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.id).to.exist;",
+							"    pm.expect(jsonData.homeTeam).to.eql(\"PSG\");",
+							"    pm.expect(jsonData.awayTeam).to.eql(\"OM\");",
+							"    pm.expect(jsonData.status).to.eql(\"scheduled\");",
+							"    ",
+							"    // Store match ID for later requests",
+							"    pm.collectionVariables.set(\"match_id\", jsonData.id);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"homeTeam\": \"PSG\",\n    \"awayTeam\": \"OM\",\n    \"date\": \"2025-02-20T15:00:00\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost/matches",
+					"protocol": "http",
+					"host": ["localhost"],
+					"path": ["matches"]
+				},
+				"description": "Create a new match"
+			}
+		},
+		{
+			"name": "4. Match - Get All Matches",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is an array of matches\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"    if (jsonData.length > 0) {",
+							"        pm.expect(jsonData[0].id).to.exist;",
+							"        pm.expect(jsonData[0].homeTeam).to.exist;",
+							"        pm.expect(jsonData[0].awayTeam).to.exist;",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost/matches",
+					"protocol": "http",
+					"host": ["localhost"],
+					"path": ["matches"]
+				},
+				"description": "Get all matches"
+			}
+		},
+		{
+			"name": "5. Bet - Create Bet",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"Bet created successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData._id).to.exist;",
+							"    pm.expect(jsonData.matchId).to.exist;",
+							"    pm.expect(jsonData.userId).to.exist;",
+							"    pm.expect(jsonData.amount).to.eql(50);",
+							"    pm.expect(jsonData.prediction).to.eql(\"home_win\");",
+							"    pm.expect(jsonData.status).to.eql(\"pending\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"matchId\": \"{{match_id}}\",\n    \"userId\": \"3\",\n    \"amount\": 50,\n    \"prediction\": \"home_win\",\n    \"odds\": 1.5\n}"
+				},
+				"url": {
+					"raw": "http://localhost/bets",
+					"protocol": "http",
+					"host": ["localhost"],
+					"path": ["bets"]
+				},
+				"description": "Create a new bet"
+			}
+		},
+		{
+			"name": "6. Payment - Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Payment service is operational\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.include(\"operational\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost/payments",
+					"protocol": "http",
+					"host": ["localhost"],
+					"path": ["payments"]
+				},
+				"description": "Check payment service health"
+			}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [""]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "jwt_token",
+			"value": ""
+		},
+		{
+			"key": "match_id",
+			"value": ""
+		}
+	]
+}
