@@ -1,3 +1,11 @@
-# authentication/Dockerfile
-FROM alpine
-CMD echo "Service en construction..."
+FROM node:latest
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
