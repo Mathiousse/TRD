@@ -3,19 +3,30 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: "prometheus"
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ["localhost:9090"]
-      - targets: ['localhost:9090']
-
-  - job_name: "spring-actuator"
-    metrics_path: "/actuator/prometheus"
   - job_name: 'authentication'
     static_configs:
-      - targets: ["host.docker.internal:8080"]
-      - targets: ['authentication:3001']
+      - targets: ['authentication:3000']
+
+  - job_name: 'match'
+    static_configs:
+      - targets: ['match:3000']
 
   - job_name: 'pari'
     static_configs:
       - targets: ['pari:3000']
+
+  - job_name: 'paiement'
+    static_configs:
+      - targets: ['paiement:3000']
+
+  - job_name: 'notifications'
+    static_configs:
+      - targets: ['notifications:3000']
+
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['gateway:80']

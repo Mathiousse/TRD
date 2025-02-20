@@ -4,7 +4,25 @@ const betRoutes = require('./routes/bet.routes');
 const amqp = require('amqplib');
 
 const app = express();
+
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    next();
+});
+
+// Use bet routes
+app.use('/bets', betRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Global error handler:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+});
 
 let channel, connection;
 
@@ -49,15 +67,7 @@ app.get('/health', async (req, res) => {
     }
 });
 
-app.use('/bets', betRoutes);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Internal server error' });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Bet service running on port ${PORT}`);
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Bet service running on port ${port}`);
 });

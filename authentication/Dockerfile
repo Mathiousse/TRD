@@ -12,7 +12,7 @@ RUN apk add --no-cache --virtual .build-deps \
     openssh-client
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm install
 RUN apk del .build-deps  # Nettoyer les dépendances de build
 
 COPY . .

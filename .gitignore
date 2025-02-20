@@ -97,3 +97,10 @@ build/
 
 # Local development configurations
 *.local
+
+.env
+.env
+.env
+.env
+future.md
+smth.json
