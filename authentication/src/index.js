@@ -5,12 +5,10 @@ const jwt = require('jsonwebtoken');
 const app = express();
 app.use(express.json());
 
-// Database connection
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
 });
 
-// Test database connection
 pool.query('SELECT NOW()', (err, res) => {
     if (err) {
         console.error('Database connection error:', err);
@@ -19,7 +17,6 @@ pool.query('SELECT NOW()', (err, res) => {
     }
 });
 
-// Health check endpoint
 app.get('/health', async (req, res) => {
     try {
         await pool.query('SELECT 1');
@@ -29,12 +26,10 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Basic authentication endpoints
 app.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
-        
-        // Check if user exists
+
         const userExists = await pool.query(
             'SELECT * FROM users WHERE username = $1',
             [username]
@@ -44,10 +39,9 @@ app.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'Username already exists' });
         }
 
-        // Insert new user
         await pool.query(
             'INSERT INTO users (username, password) VALUES ($1, $2)',
-            [username, password] // Note: In production, password should be hashed
+            [username, password] // Note: not secure, TODO
         );
 
         res.status(201).json({ message: 'User registered successfully' });
@@ -60,18 +54,16 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-        
-        // Find user
+
         const result = await pool.query(
             'SELECT * FROM users WHERE username = $1 AND password = $2',
-            [username, password] // Note: In production, password comparison should be done securely
+            [username, password] // Note: not secure, TODO
         );
 
         if (result.rows.length === 0) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Generate JWT token
         const token = jwt.sign(
             { userId: result.rows[0].id, username },
             process.env.JWT_SECRET,
